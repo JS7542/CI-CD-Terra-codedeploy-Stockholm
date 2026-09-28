@@ -1,5 +1,4 @@
 #!/bin/bash
-set -euxo pipefail
 
 # EIP association and repository availability can lag instance launch.
 retry() {

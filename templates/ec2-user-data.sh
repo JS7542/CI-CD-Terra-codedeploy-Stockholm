@@ -2,45 +2,86 @@
 
 export DEBIAN_FRONTEND=noninteractive
 
-# 패키지 업데이트
 apt-get update -y
+apt-get install -y \
+  curl \
+  unzip \
+  nfs-common \
+  docker.io \
+  docker-compose-v2
 
-# NAT 규칙 저장용
-apt-get install -y iptables-persistent
-
-# -----------------------------------------------------------------------------
-# IP Forwarding 활성화
-# -----------------------------------------------------------------------------
-
-cat <<EOF > /etc/sysctl.d/99-nat-instance.conf
-net.ipv4.ip_forward=1
-EOF
-
-sysctl --system
+systemctl enable --now docker
+usermod -aG docker ubuntu || true
 
 # -----------------------------------------------------------------------------
-# NAT 설정
+# 5 GiB 추가 EBS -> /mnt/data
+# Nitro 인스턴스에서는 /dev/sdf가 /dev/nvme* 이름으로 표시될 수 있으므로
+# 크기로 검색한다.
 # -----------------------------------------------------------------------------
 
-# 기본 외부 인터페이스 자동 검색
-PRIMARY_INTERFACE=$(ip route | awk '/default/ {print $5; exit}')
+mkdir -p /mnt/data
 
-# 기존 NAT 규칙 중 동일 규칙이 없을 때만 추가
-iptables -t nat -C POSTROUTING -o "$PRIMARY_INTERFACE" -j MASQUERADE 2>/dev/null || \
-iptables -t nat -A POSTROUTING -o "$PRIMARY_INTERFACE" -j MASQUERADE
+DATA_DEVICE=""
 
-# Forward 허용
-iptables -C FORWARD -i "$PRIMARY_INTERFACE" -m state \
-  --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \
-iptables -A FORWARD -i "$PRIMARY_INTERFACE" -m state \
-  --state RELATED,ESTABLISHED -j ACCEPT
+for i in $(seq 1 30); do
+  DATA_DEVICE=$(lsblk -b -dn -o NAME,SIZE,TYPE \
+    | awk '$2 == 5368709120 && $3 == "disk" {print "/dev/"$1; exit}')
 
-iptables -C FORWARD -o "$PRIMARY_INTERFACE" -j ACCEPT 2>/dev/null || \
-iptables -A FORWARD -o "$PRIMARY_INTERFACE" -j ACCEPT
+  if [ -n "$DATA_DEVICE" ]; then
+    break
+  fi
 
-# 재부팅 후에도 유지
-netfilter-persistent save
+  sleep 2
+done
 
-echo "NAT instance initialization complete"
-sysctl net.ipv4.ip_forward
-iptables -t nat -L -n -v
+if [ -n "$DATA_DEVICE" ]; then
+  if ! blkid "$DATA_DEVICE" >/dev/null 2>&1; then
+    mkfs.ext4 -F "$DATA_DEVICE"
+  fi
+
+  DATA_UUID=$(blkid -s UUID -o value "$DATA_DEVICE")
+
+  if ! grep -q "UUID=$DATA_UUID" /etc/fstab; then
+    echo "UUID=$DATA_UUID /mnt/data ext4 defaults,nofail 0 2" >> /etc/fstab
+  fi
+
+  mount -a
+  chown ubuntu:ubuntu /mnt/data
+fi
+
+# -----------------------------------------------------------------------------
+# EFS -> /mnt/efs
+# -----------------------------------------------------------------------------
+
+mkdir -p /mnt/efs
+
+for i in $(seq 1 60); do
+  if getent hosts ${efs_dns_name} >/dev/null 2>&1; then
+    break
+  fi
+
+  sleep 2
+done
+
+if ! grep -q "${efs_dns_name}" /etc/fstab; then
+  echo "${efs_dns_name}:/ /mnt/efs nfs4 defaults,_netdev,nofail,nfsvers=4.1 0 0" >> /etc/fstab
+fi
+
+mount -a
+
+# -----------------------------------------------------------------------------
+# Docker 동작 확인용 Nginx 컨테이너
+# -----------------------------------------------------------------------------
+
+docker rm -f std20-web >/dev/null 2>&1 || true
+docker run -d \
+  --name std20-web \
+  --restart unless-stopped \
+  -p 80:80 \
+  nginx:alpine
+
+echo "EC2 initialization complete"
+df -h
+lsblk
+docker --version
+docker compose version
