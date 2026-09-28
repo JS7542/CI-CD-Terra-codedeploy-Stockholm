@@ -14,8 +14,3 @@ variable "vpc_cidr" {
 }
 
 
-variable "nat_security_group_id" {
-  description = "NAT instance SG, also permitted as an SSH jump host"
-  type        = string
-  default     = null
-}

@@ -17,7 +17,6 @@ module "security" {
 
   tag_header            = local.tag_header
   vpc_id                = module.network.vpc_id
-  nat_security_group_id = module.network.nat_security_group_id
   vpc_cidr              = var.vpc_cidr
 }
 
@@ -26,7 +25,7 @@ module "compute" {
   source = "./modules/compute"
 
   tag_header = local.tag_header
-  internal_ssh_sg_id = module.security.internal_ssh_sg_id
+  internal_ssh_sg_id = module.security.std20_bastion_sg_id
   web_sg_id = module.security.web_sg_id
   subnet_id = module.network.private_subnet_ids[0]
   ami_id = data.aws_ami.ubuntu_2404.id

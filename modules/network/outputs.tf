@@ -35,6 +35,4 @@ output "nat_public_ip" {
   depends_on = [aws_eip_association.std20_nat_eip]
 }
 
-output "nat_security_group_id" {
-  value = aws_security_group.std20_nat_sg.id
-}
+
