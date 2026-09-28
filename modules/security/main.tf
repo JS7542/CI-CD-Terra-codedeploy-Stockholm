@@ -64,7 +64,7 @@ resource "aws_security_group" "std20_internal_ssh_sg" {
     from_port       = 22
     to_port         = 22
     protocol        = "tcp"
-    security_groups = [aws_security_group.std20_bastion_sg.id]
+    security_groups = compact([aws_security_group.std20_bastion_sg.id, var.nat_security_group_id])
   }
 
   egress {

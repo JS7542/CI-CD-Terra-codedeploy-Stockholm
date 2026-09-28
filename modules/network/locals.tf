@@ -3,7 +3,7 @@
 # =============================================================================
 
 locals {
-  vpc_cidr   = var.vpc_cidr
+  vpc_cidr = var.vpc_cidr
 
   # subnet_cidr에 정의된 3개 AZ만 사용
   azs = sort(keys(var.subnet_cidr[0]))

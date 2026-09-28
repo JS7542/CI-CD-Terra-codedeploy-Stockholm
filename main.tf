@@ -3,17 +3,21 @@
 module "network" {
   source = "./modules/network"
 
-  tag_header = local.tag_header
-  vpc_cidr = var.vpc_cidr
-  subnet_cidr = var.subnet_cidr
+  tag_header            = local.tag_header
+  vpc_cidr              = var.vpc_cidr
+  subnet_cidr           = var.subnet_cidr
+  key_name              = data.aws_key_pair.existing.key_name
+  nat_instance_type     = var.nat_instance_type
+  nat_ssh_allowed_cidrs = var.nat_ssh_allowed_cidrs
 }
 
 module "security" {
   source = "./modules/security"
 
-  tag_header = local.tag_header
-  vpc_id = module.network.vpc_id
-  vpc_cidr = var.vpc_cidr
+  tag_header            = local.tag_header
+  vpc_id                = module.network.vpc_id
+  nat_security_group_id = module.network.nat_security_group_id
+  vpc_cidr              = var.vpc_cidr
 }
 
 
@@ -98,6 +102,8 @@ module "security" {
 #   subnet_ids        = module.network.cluster_subnet_ids
 #   github_repository = var.github_repository
 #   github_branch     = var.github_branch
+#   key_name          = data.aws_key_pair.existing.key_name
+#   region            = var.region
 
 #   # User Data 설치 전에 NAT 및 라우팅까지 준비합니다.
 #   depends_on = [module.network]

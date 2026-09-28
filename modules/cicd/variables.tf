@@ -13,3 +13,15 @@ variable "github_repository" {
 variable "github_branch" {
   type = string
 }
+
+variable "region" {
+  description = "Deployment region for CodeDeploy agent download"
+  type        = string
+  default     = "eu-north-1"
+}
+
+variable "key_name" {
+  description = "Existing EC2 key pair in the deployment region"
+  type        = string
+  default     = "std20-keypair"
+}

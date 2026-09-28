@@ -59,7 +59,7 @@ resource "aws_iam_role_policy_attachment" "codedeploy_policy" {
 # 2. Launch Template & UserData
 # ======================================================================
 
-# Amazon Linux 2023 최신 AMI 조회 (루트 AWS Provider의 뭄바이 리전)
+# Amazon Linux 2023 최신 AMI 조회 (루트 AWS Provider의 스톡홀름 리전)
 data "aws_ami" "al2023" {
   most_recent = true
   owners      = ["amazon"]
@@ -74,6 +74,7 @@ resource "aws_launch_template" "asg_lt" {
   name_prefix   = "${local.tag_header}asg-launch-template-"
   image_id      = data.aws_ami.al2023.id
   instance_type = "t3.micro"
+  key_name      = var.key_name
   # 변경: 예제의 고정 SG ID 대신 원본 security 모듈의 실제 ID 연결
   vpc_security_group_ids = var.security_group_ids
   iam_instance_profile {
@@ -81,20 +82,28 @@ resource "aws_launch_template" "asg_lt" {
   }
 
   # Docker 및 CodeDeploy Agent 자동 설치 스크립트 (base64 자동 인코딩)
-  # 제공한 설치 주소는 이미 뭄바이(ap-south-1)이므로 그대로 유지
+  # 설치 주소는 루트에서 전달한 배포 리전을 사용합니다.
   user_data = base64encode(<<-EOF_USER_DATA
               #!/bin/bash
-              dnf update -y
-              dnf install -y ruby wget docker
+              set -euxo pipefail
+              retry() {
+                for attempt in $(seq 1 60); do
+                  if "$@"; then return 0; fi
+                  sleep 10
+                done
+                return 1
+              }
+              # Terraform dependencies do not wait for NAT cloud-init completion.
+              retry dnf install -y ruby wget docker
 
               systemctl start docker
               systemctl enable docker
               usermod -aG docker ec2-user
 
               cd /tmp
-              wget https://aws-codedeploy-ap-south-1.s3.ap-south-1.amazonaws.com/latest/install
+              retry wget -O install https://aws-codedeploy-${var.region}.s3.${var.region}.amazonaws.com/latest/install
               chmod +x ./install
-              ./install auto
+              retry ./install auto
 
               systemctl start codedeploy-agent
               systemctl enable codedeploy-agent

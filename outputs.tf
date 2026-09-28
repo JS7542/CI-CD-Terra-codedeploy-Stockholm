@@ -67,3 +67,19 @@ output "vpc_id" {
 # output "deployment_group_name" {
 #   value = module.cicd.deployment_group_name
 # }
+
+output "nat_instance_id" {
+  value = module.network.nat_instance_id
+}
+
+output "nat_public_ip" {
+  value = module.network.nat_public_ip
+}
+
+output "private_subnet_ids" {
+  value = module.network.private_subnet_ids
+}
+
+output "cluster_subnet_ids" {
+  value = module.network.cluster_subnet_ids
+}

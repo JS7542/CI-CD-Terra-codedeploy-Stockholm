@@ -13,7 +13,8 @@ output "private_subnet_ids" {
 }
 
 output "cluster_subnet_ids" {
-  value = [for az in local.azs : aws_subnet.create_subnet["cluster-${az}"].id]
+  value      = [for az in local.azs : aws_subnet.create_subnet["cluster-${az}"].id]
+  depends_on = [aws_route.std20_cluster_rt_nat_access, aws_route_table_association.std20_cluster_rt_assoc]
 }
 
 output "private_subnet_ids_by_key" {
@@ -24,3 +25,16 @@ output "s3_route_table_ids" {
   value = concat([for key in sort(keys(aws_route_table.std20_pri_rt)) : aws_route_table.std20_pri_rt[key].id], [aws_route_table.std20_cluster_rt.id])
 }
 
+
+output "nat_instance_id" {
+  value = aws_instance.std20_nat_instance.id
+}
+
+output "nat_public_ip" {
+  value      = aws_eip.std20_nat_eip.public_ip
+  depends_on = [aws_eip_association.std20_nat_eip]
+}
+
+output "nat_security_group_id" {
+  value = aws_security_group.std20_nat_sg.id
+}

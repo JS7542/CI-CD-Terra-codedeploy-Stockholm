@@ -19,10 +19,10 @@ terraform {
 
   # Terraform backend용 S3 버킷은 terraform init 이전에 존재해야 한다.
   # 기존 state와 분리하기 위해 key만 변경했습니다.
-  # 아래 region은 S3 상태 버킷이 있는 홍콩입니다. 배포 리전은 var.region(뭄바이).
+  # 아래 region은 S3 상태 버킷이 있는 홍콩입니다. 배포 리전은 var.region(스톡홀름).
   backend "s3" {
     bucket       = "std20-terraform-state-bucket"
-    key          = "CI-CD-Terra-Mumbai/terraform.tfstate"
+    key          = "CI-CD-Terra-Stockholm/terraform.tfstate"
     region       = "ap-east-1"
     encrypt      = true
     use_lockfile = true

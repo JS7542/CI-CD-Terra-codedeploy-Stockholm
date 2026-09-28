@@ -15,9 +15,9 @@ resource "aws_vpc" "std20_vpc" {
 
 # -----------------------------------------------------------------------------
 # Subnet
-# Public  : 10.0.1.0/24  ~ 10.0.3.0/24
-# Private : 10.0.11.0/24 ~ 10.0.13.0/24
-# Cluster : 10.0.21.0/24 ~ 10.0.23.0/24
+# Public  : 10.20.1.0/24  ~ 10.20.3.0/24
+# Private : 10.20.11.0/24 ~ 10.20.13.0/24
+# Cluster : 10.20.21.0/24 ~ 10.20.23.0/24
 # -----------------------------------------------------------------------------
 
 resource "aws_subnet" "create_subnet" {
@@ -40,19 +40,19 @@ resource "aws_subnet" "create_subnet" {
     },
 
     each.value.type == "public" ? {
-      "kubernetes.io/role/elb"                                      = "1"
-      "kubernetes.io/cluster/${var.tag_header}eks-cluster"        = "shared"
+      "kubernetes.io/role/elb"                             = "1"
+      "kubernetes.io/cluster/${var.tag_header}eks-cluster" = "shared"
     } : {},
 
     each.value.type == "cluster" ? {
-      "kubernetes.io/role/internal-elb"                             = "1"
-      "kubernetes.io/cluster/${var.tag_header}eks-cluster"        = "shared"
+      "kubernetes.io/role/internal-elb"                    = "1"
+      "kubernetes.io/cluster/${var.tag_header}eks-cluster" = "shared"
     } : {}
   )
 }
 
 # -----------------------------------------------------------------------------
-# Internet Gateway / NAT Gateway
+# Internet Gateway / NAT Instance
 # -----------------------------------------------------------------------------
 
 resource "aws_internet_gateway" "std20_igw" {
@@ -71,17 +71,10 @@ resource "aws_eip" "std20_nat_eip" {
   }
 }
 
-resource "aws_nat_gateway" "std20_nat_gw" {
+# NAT 설정과 보안 그룹은 nat.tf에서 관리합니다.
+resource "aws_eip_association" "std20_nat_eip" {
   allocation_id = aws_eip.std20_nat_eip.id
-  subnet_id     = aws_subnet.create_subnet["public-${local.azs[0]}"].id
-
-  depends_on = [
-    aws_internet_gateway.std20_igw
-  ]
-
-  tags = {
-    Name = "${var.tag_header}nat-gw"
-  }
+  instance_id   = aws_instance.std20_nat_instance.id
 }
 
 # -----------------------------------------------------------------------------
@@ -162,12 +155,16 @@ resource "aws_route" "std20_pri_rt_nat_access" {
 
   route_table_id         = each.value.id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.std20_nat_gw.id
+  network_interface_id   = aws_instance.std20_nat_instance.primary_network_interface_id
+
+  depends_on = [aws_eip_association.std20_nat_eip]
 }
 
 resource "aws_route" "std20_cluster_rt_nat_access" {
   route_table_id         = aws_route_table.std20_cluster_rt.id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.std20_nat_gw.id
+  network_interface_id   = aws_instance.std20_nat_instance.primary_network_interface_id
+
+  depends_on = [aws_eip_association.std20_nat_eip]
 }
 
