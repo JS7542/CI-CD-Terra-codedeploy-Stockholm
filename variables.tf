@@ -46,7 +46,8 @@ variable "subnet_cidr" {
 variable "key_name" {
   description = "배포 리전에 이미 존재하는 AWS EC2 Key Pair 이름"
   type        = string
-  default     = "std20-keypair"
+  default     = "std20-keypair-home"
+  # default     = "std20-keypair" - 실습용
 }
 
 variable "eks_version" {
