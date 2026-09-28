@@ -34,14 +34,14 @@ module "compute" {
 }
 
 
-# module "storage" {
-#   source = "./modules/storage"
-#
-#   tag_header = local.tag_header
-#   efs_sg_id = module.security.efs_sg_id
-#   private_subnet_ids_by_key = module.network.private_subnet_ids_by_key
-#   account_id = data.aws_caller_identity.current.account_id
-# }
+module "storage" {
+  source = "./modules/storage"
+
+  tag_header = local.tag_header
+  efs_sg_id = module.security.efs_sg_id
+  private_subnet_ids_by_key = module.network.private_subnet_ids_by_key
+  account_id = data.aws_caller_identity.current.account_id
+}
 
 # module "asg" {
 #   source = "./modules/asg"
