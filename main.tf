@@ -7,6 +7,7 @@ module "network" {
   vpc_cidr              = var.vpc_cidr
   subnet_cidr           = var.subnet_cidr
   key_name              = data.aws_key_pair.existing.key_name
+  bastion_sg_id          = module.security.std20_bastion_sg_id
   nat_instance_type     = var.nat_instance_type
   nat_ssh_allowed_cidrs = var.nat_ssh_allowed_cidrs
 }
@@ -21,17 +22,17 @@ module "security" {
 }
 
 
-# module "compute" {
-#   source = "./modules/compute"
-#
-#   tag_header = local.tag_header
-#   internal_ssh_sg_id = module.security.internal_ssh_sg_id
-#   web_sg_id = module.security.web_sg_id
-#   subnet_id = module.network.private_subnet_ids[0]
-#   ami_id = data.aws_ami.ubuntu_2404.id
-#   user_data = local.web_user_data
-#   key_name = var.key_name
-# }
+module "compute" {
+  source = "./modules/compute"
+
+  tag_header = local.tag_header
+  internal_ssh_sg_id = module.security.internal_ssh_sg_id
+  web_sg_id = module.security.web_sg_id
+  subnet_id = module.network.private_subnet_ids[0]
+  ami_id = data.aws_ami.ubuntu_2404.id
+  user_data = local.web_user_data
+  key_name = var.key_name
+}
 
 
 # module "storage" {

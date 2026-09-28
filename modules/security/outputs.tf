@@ -1,3 +1,6 @@
+output "std20_bastion_sg_id" {
+  value = aws_security_group.std20_bastion_sg.id
+}
 output "internal_ssh_sg_id" {
   value = aws_security_group.std20_internal_ssh_sg.id
 }
