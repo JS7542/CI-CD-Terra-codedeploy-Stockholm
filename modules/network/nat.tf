@@ -34,7 +34,7 @@ resource "aws_instance" "std20_nat_instance" {
   associate_public_ip_address = true
   source_dest_check           = false
 
-  user_data = templatefile("${path.module}/templates/nat-user-data.sh", {
+  user_data = templatefile("${path.root}/templates/nat-user-data.sh", {
     vpc_cidr = var.vpc_cidr
   })
   user_data_replace_on_change = true
